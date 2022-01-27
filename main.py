@@ -1,99 +1,139 @@
 import os
-import win32gui
 import pyautogui
-import pydirectinput
 import time
-import win32con
-import win32api
 import sys
-import input
 
-sys.stdout = open("pyautogui.log", "w")
-sys.stderr = open("pyautogui-err.log", "w")
+# sys.stdout = open("pyautogui.log", "w")
+# sys.stderr = open("pyautogui-err.log", "w")
 
+REGION=(0,100,860,1750)
 KEEP_DIR = './screenshots'
 if not os.path.exists(KEEP_DIR):
     # ディレクトリが存在しない場合、ディレクトリを作成する
     os.makedirs(KEEP_DIR)
 
-def get_locate_from_filename(filename, sleep=0.1, confidence=0.95, timeout=None):
+def get_locate_from_filename(filename, sleep=0.1, confidence=0.95, times=1, grayscale=True):
     locate = None
-    elapsed_time=0
+    done = 0
     while locate == None:
-        time.sleep(sleep)
-        #グレイスケールで検索
-        locate = pyautogui.locateCenterOnScreen(filename, grayscale=True, confidence=confidence)
-        #フルカラーで検索(遅い)
-        #locate = pg.locateCenterOnScreen(filename)
+        locate = pyautogui.locateCenterOnScreen(filename, grayscale=grayscale, confidence=confidence, region=REGION)
+        print(filename,locate)
 
-        # timeout設定がある場合、sleepの時間で判定
-        # TODO: ERROR投げる
-        # TODO: 実実行時間で判定する
-        # 実実行時間なら呼び出し側でやったほうがいいかな？
-        if timeout:
-           print(elapsed_time)
-           elapsed_time = elapsed_time + sleep
-           timeout <= elapsed_time
-           break
+        if times:
+           done = done + 1
+           if done >= times:
+             break
+            
+           time.sleep(sleep)
     print(locate)
     return locate
 
-# ラグナドのウィンドウ探してサイズ変更して左上に配置
-def set_ragnador_window():
-    rag = win32gui.FindWindow(None, 'ラグナド')
-    win32gui.SetForegroundWindow(rag)
-   #  time.sleep(1)
-   #  hwnd = win32gui.GetForegroundWindow()
-    win32gui.MoveWindow(rag, 0, 0, 800, 1200, True)
-
 def click(x,y):
-    while True:
-        # pyautogui.moveTo(x,y,1)
-        pydirectinput.moveTo(x,y)
-        input.set_pos(x,y)
-        now_x, now_y = pyautogui.position()
-        print('expected', x, y)
-        print('now', now_x, now_y)
-        time.sleep(1)
-        if (now_x == x) and (now_y == y):
-            break
-        set_ragnador_window()
-
-    win32api.SetCursorPos((x,y))
-    win32api.mouse_event(win32con.MOUSEEVENTF_LEFTDOWN,x,y,0,0)
-    win32api.mouse_event(win32con.MOUSEEVENTF_LEFTUP,x,y,0,0)
+    pyautogui.moveTo(x,y)
+    pyautogui.dragTo(button='left')
 
 def click_by_file_name(file_name):
-   button_position = get_locate_from_filename(file_name, confidence=0.65, timeout=5)
+   button_position = get_locate_from_filename(file_name, confidence=0.55, timeout=5)
    x,y= button_position
-   click(x,y);
+   # retinaなので半分にする
+   click(x/2,y/2);
+
+def quest_target_locate():
+    pos = get_locate_from_filename('images/quest_target.png', confidence=0.6, times=1, grayscale=True)
+
+
+    if pos:
+        x,y = pos
+        # 範囲が正しいか確認
+        # (520,450,300,100)
+        if 520 <= x and x <= 820 and 450 <= y and y <= 550:
+            print(f'quest_target見つけた{pos}')
+            return pos
+
+    return None
+
+def retry_locate():
+    pos = get_locate_from_filename('images/retry.png', confidence=0.7, times=1, grayscale=True)
+    if pos:
+        print(f'retry見つけた{pos}')
+    return pos
+
+# 一旦無視
+def skip_locate():
+    pos = get_locate_from_filename('images/skip.png', confidence=0.7, times=1, grayscale=True)
+    if pos:
+        print(f'skip見つけた{pos}')
+    return pos
+
+def skip_ok_locate():
+    pos = get_locate_from_filename('images/skip_ok.png', confidence=0.7, times=1, grayscale=True)
+    if pos:
+        print(f'skip_ok見つけた{pos}')
+    return pos
+
+def quest_skip_locate():
+    pos = get_locate_from_filename('images/quest_skip.png', confidence=0.7, times=1, grayscale=True)
+    if pos:
+        print(f'quest_skip見つけた{pos}')
+    return pos
+
+def close_locate():
+    pos = get_locate_from_filename('images/close.png', confidence=0.7, times=1, grayscale=True)
+    if pos:
+        print(f'close見つけた{pos}')
+    return pos
+
+def touch_locate():
+    pos = get_locate_from_filename('images/touch.png', confidence=0.7, times=1, grayscale=True)
+    if pos:
+        print(f'touch見つけた{pos}')
+    return pos
+
+def ok_locate():
+    pos = get_locate_from_filename('images/quest_ok.png', confidence=0.7, times=1, grayscale=True)
+    if pos:
+        print(f'ok見つけた{pos}')
+    return pos
 
 # クエスト開始からの処理
 def quest_routine():
-    click(700, 300)
-
     while True:
-        time.sleep(1);
-        for file in ['images/retry.png', 'images/skip.png', 'images/close.png', 'images/ok.png']:
-            pos= get_locate_from_filename(file, sleep=0.1, confidence=0.5, timeout=1)
-            if pos:
-                print(f'{file}見つけた{pos}')
-                x,y=pos
-                click(x, y)
-                break
+        result1 = [quest_target_locate(), retry_locate(), skip_ok_locate(), touch_locate(), quest_skip_locate(), close_locate(), ok_locate()]
+
+        # 見つかったものが一つも無ければbreak
+        if not any(result1):
+            print('1個も見つからず')
+            continue
+
+        result2 = [quest_target_locate(), retry_locate(), skip_ok_locate(), touch_locate(), quest_skip_locate(), close_locate(), ok_locate()]
+
+        # 2回とも認識できた画像が同じでなければbreak
+        if not list(map(lambda x: x != None, result1)) == list(map(lambda x: x != None, result2)):
+            print('2回同じじゃない')
+
+            continue
+
+        # 見つかった中で一番優先度が高いものを取得
+        pos = next(filter(lambda x: x != None, result1), None)
+
+        x,y=pos
+        click(x/2, y/2)
+        time.sleep(3);
 
 
 if __name__ == "__main__":
     # set_ragnador_window()
-   # pyautogui.screenshot('screenshots/test.png' ,region=(0,0, 900,1200))
+    # pyautogui.screenshot('screenshots/test.png' ,region=REGION)
    # click_by_file_name('images/quest_icon.png')
-    x,y = [1200,400]
-    time.sleep(2)
-    # pydirectinput.moveTo(x,y)
-    time.sleep(2)
-    # pyautogui.moveTo(x,y, 3)
-    time.sleep(2)
-    input.set_pos(x,y)
-#    quest_routine()
+#    (0,100,860,1750)
+    # pyautogui.screenshot('screenshots/skip.png' ,region=(520,450,300,100))
+    # アクティブにする
+    click(100,100)
+    # click_by_file_name('images/quest_target.png')
+    quest_routine();
+    # pyautogui.screenshot('screenshots/test.png' ,region=(0,100, 860,1750))
+    # x,y = [1200,400]
+    # x,y = [0,0]
+    # pyautogui.moveTo(x,y, 1)
 
     pass
