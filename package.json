@@ -1,0 +1,25 @@
+{
+  "name": "ragnador",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "directories": {
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yoshinori-ma/ragnador.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/yoshinori-ma/ragnador/issues"
+  },
+  "homepage": "https://github.com/yoshinori-ma/ragnador#readme",
+  "dependencies": {
+    "good-friends-colors": "^1.0.0"
+  }
+}
